@@ -1,6 +1,8 @@
 
 provider "archive" {}
 
+provider "random" {}
+
 #
 # HashiCorp internal provider that issues temporary credentials
 #
@@ -18,3 +20,6 @@ provider "aws" {
   token      = data.doormat_aws_credentials.creds.token
 }
 
+provider "tfe" {
+  organization = var.tfe_organization
+}

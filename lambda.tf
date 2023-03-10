@@ -48,3 +48,8 @@ resource "aws_lambda_function" "lambda" {
   handler          = "main.lambda_handler" # File + function name
   runtime          = "python3.9"
 }
+
+resource "aws_lambda_function_url" "latest" {
+  function_name      = aws_lambda_function.lambda.function_name
+  authorization_type = "NONE"
+}
