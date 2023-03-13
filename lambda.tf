@@ -34,9 +34,9 @@ resource "aws_iam_role" "lambda_role" {
 # See https://docs.aws.amazon.com/lambda/latest/dg/python-package.html
 data "archive_file" "lambda_function" {
   type             = "zip"
-  source_file      = "${path.module}/lambda/main.py"
   output_file_mode = "0666"
   output_path      = "${path.module}/files/lambda-function.zip"
+  source_dir       = "${path.module}/lambda"
 }
 
 resource "aws_lambda_function" "lambda" {
@@ -47,6 +47,12 @@ resource "aws_lambda_function" "lambda" {
   source_code_hash = data.archive_file.lambda_function.output_base64sha256
   handler          = "main.lambda_handler" # File + function name
   runtime          = "python3.9"
+
+  environment {
+    variables = {
+      HMAC_KEY = sensitive(random_pet.hmac_key.id)
+    }
+  }
 }
 
 resource "aws_lambda_function_url" "latest" {
