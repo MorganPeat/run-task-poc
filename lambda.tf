@@ -37,6 +37,7 @@ data "archive_file" "lambda_function" {
   output_file_mode = "0666"
   output_path      = "${path.module}/files/lambda-function.zip"
   source_dir       = "${path.module}/lambda"
+  excludes         = ["main_test.py", "event.json"]
 }
 
 resource "aws_lambda_function" "lambda" {

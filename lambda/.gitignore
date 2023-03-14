@@ -1,2 +1,3 @@
 # TODO: Provide an automated way of building zip file with dependencies
 jsonpickle*
+__pycache__
