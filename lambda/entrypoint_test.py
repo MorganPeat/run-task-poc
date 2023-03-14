@@ -3,7 +3,7 @@ import json
 import logging
 import os
 import sys
-from main import lambda_handler
+from entrypoint import lambda_handler
 
 HMAC_KEY="centrally-deeply-humble-mammoth"
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)

@@ -3,10 +3,12 @@ import hashlib
 import os
 import logging
 import jsonpickle
-
+import boto3
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
+
+client = boto3.client('lambda')
 
 
 def lambda_handler(event, context):
@@ -17,7 +19,7 @@ def lambda_handler(event, context):
                 jsonpickle.encode(dict(**os.environ)))
     logger.info('## EVENT\r' + jsonpickle.encode(event))
     logger.info('## CONTEXT\r' + jsonpickle.encode(context))
-        
+
     key = os.environ['HMAC_KEY']
     payload = event['body']
     signature = event['headers']['x-tfc-task-signature']
@@ -33,9 +35,10 @@ def lambda_handler(event, context):
 
     return {
         'statusCode': status,
-        'body': jsonpickle.encode({'status' : response})
+        'body': jsonpickle.encode({'status': response})
     }
-    
+
+
 def hmac_digest_is_valid(key: str, payload: str, signature: str) -> bool:
     # Returns true if the signature matches the SHA512 digest of the payload with key
     h = hmac.new(bytes(key, 'UTF-8'), bytes(payload, 'UTF-8'), hashlib.sha512)

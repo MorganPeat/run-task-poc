@@ -37,7 +37,7 @@ data "archive_file" "lambda_function" {
   output_file_mode = "0666"
   output_path      = "${path.module}/files/lambda-function.zip"
   source_dir       = "${path.module}/lambda"
-  excludes         = ["main_test.py", "event.json"]
+  excludes         = ["entrypoint_test.py", "event.json"]
 }
 
 resource "aws_lambda_function" "lambda" {
@@ -46,7 +46,7 @@ resource "aws_lambda_function" "lambda" {
 
   filename         = data.archive_file.lambda_function.output_path
   source_code_hash = data.archive_file.lambda_function.output_base64sha256
-  handler          = "main.lambda_handler" # File + function name
+  handler          = "entrypoint.lambda_handler" # File + function name
   runtime          = "python3.9"
 
   environment {
