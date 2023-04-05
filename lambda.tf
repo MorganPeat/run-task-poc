@@ -30,25 +30,25 @@ resource "aws_iam_role" "lambda_role" {
 }
 
 
-# Packages up the python script to a zip that can be used by lambda
-# See https://docs.aws.amazon.com/lambda/latest/dg/python-package.html
-data "archive_file" "lambda_function" {
-  type             = "zip"
-  output_file_mode = "0666"
-  output_path      = "${path.module}/files/lambda-function.zip"
-  source_dir       = "${path.module}/lambda"
-  excludes         = ["entrypoint_test.py", "event.json"]
-}
-
-resource "aws_lambda_function" "lambda" {
-  function_name = "tfc-run-task"
+#
+# The request lambda
+#
+# This lambda receives run task requests from TFC. It
+# will confirm the request is valid (HMAC) and initiate
+# the callback lambda, which will execute the actual run
+# task action.
+#
+resource "aws_lambda_function" "request" {
+  function_name = "run_task_request"
   role          = aws_iam_role.lambda_role.arn
 
-  filename         = data.archive_file.lambda_function.output_path
-  source_code_hash = data.archive_file.lambda_function.output_base64sha256
-  handler          = "entrypoint.lambda_handler" # File + function name
-  runtime          = "python3.9"
+  # URI comes from the output of the packer build, once the image is pushed to ECR
+  image_uri     = var.request_lambda_image_url
+  package_type  = "Image" # case sensitive
+  architectures = ["x86_64"]
 
+  # This HMAC key allows the lambda to verify the payload.
+  # It is also provided to the TFC run task itself.
   environment {
     variables = {
       HMAC_KEY = sensitive(random_pet.hmac_key.id)
@@ -56,7 +56,28 @@ resource "aws_lambda_function" "lambda" {
   }
 }
 
-resource "aws_lambda_function_url" "latest" {
-  function_name      = aws_lambda_function.lambda.function_name
+# Expose the lambda via public-facing URL that TFC can call.
+resource "aws_lambda_function_url" "request" {
+  function_name      = aws_lambda_function.request.function_name
   authorization_type = "NONE"
+}
+
+
+#
+# The callback lambda
+#
+# This lambda is called by the request lambda once the request payload 
+# has been verified. It will perform any work required by the run task,
+# asynchronously to TFC, and once complete will post the result back
+# to the TFC run.
+#
+resource "aws_lambda_function" "callback" {
+  function_name = "run_task_callback"
+  role          = aws_iam_role.lambda_role.arn
+  timeout       = 120 # seconds
+
+  # URI comes from the output of the packer build, once the image is pushed to ECR
+  image_uri     = var.callback_lambda_image_url
+  package_type  = "Image" # case sensitive
+  architectures = ["x86_64"]
 }

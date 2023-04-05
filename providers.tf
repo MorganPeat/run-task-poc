@@ -1,12 +1,7 @@
-
-provider "archive" {}
-
 provider "random" {}
 
-#
 # HashiCorp internal provider that issues temporary credentials
-#
-
+# which the AWS provider uses
 provider "doormat" {}
 
 data "doormat_aws_credentials" "creds" {

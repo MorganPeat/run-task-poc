@@ -8,3 +8,17 @@ variable "tfe_organization" {
   description = "TFE organization that is to be configured"
   default     = "mp-demo-org"
 }
+
+variable "request_lambda_image_url" {
+  type        = string
+  description = "URL of the ECR image to use for the Request lambda"
+
+  default = "303871294183.dkr.ecr.eu-west-2.amazonaws.com/run-task-poc-request:latest"
+}
+
+variable "callback_lambda_image_url" {
+  type        = string
+  description = "URL of the ECR image to use for the Request lambda"
+
+  default = "303871294183.dkr.ecr.eu-west-2.amazonaws.com/run-task-poc-callback:latest"
+}
