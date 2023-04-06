@@ -22,3 +22,9 @@ variable "callback_lambda_image_url" {
 
   default = "303871294183.dkr.ecr.eu-west-2.amazonaws.com/run-task-poc-callback:latest"
 }
+
+variable "terraform_token" {
+  type        = string
+  description = "Terraform token that lambda uses to call back into TFE"
+  sensitive   = true
+}

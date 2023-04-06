@@ -106,4 +106,10 @@ resource "aws_lambda_function" "callback" {
   image_uri     = "${data.aws_ecr_repository.callback.repository_url}@${data.aws_ecr_image.callback.image_digest}"
   package_type  = "Image" # case sensitive
   architectures = ["x86_64"]
+
+  environment {
+    variables = {
+      TF_TOKEN = sensitive(var.terraform_token)
+    }
+  }
 }
