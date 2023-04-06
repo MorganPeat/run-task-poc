@@ -40,7 +40,7 @@ def handler(event, context):
 
     logger.info('Downloading terraform files for this run ...')
     with tempfile.TemporaryDirectory(dir='/tmp/') as tf_location:
-        download_tf_files(event['run_id'], headers)
+        download_tf_files(event['run_id'], headers, tf_location)
 
         logger.info('Validating terraform configuration ...')
         execute_terraform(['terraform', '-version'], tf_location)
