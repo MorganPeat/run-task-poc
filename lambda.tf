@@ -24,9 +24,12 @@ data "aws_iam_policy_document" "lambda_trust_policy" {
 # Lambda needs and allowing the Lambda function to assume it.
 # More info at https://docs.aws.amazon.com/lambda/latest/dg/lambda-intro-execution-role.html
 resource "aws_iam_role" "lambda_role" {
-  name                = "iam_for_lambda"
-  assume_role_policy  = data.aws_iam_policy_document.lambda_trust_policy.json
-  managed_policy_arns = ["arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"]
+  name               = "iam_for_lambda"
+  assume_role_policy = data.aws_iam_policy_document.lambda_trust_policy.json
+  managed_policy_arns = [
+    "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole", # Allows lambda to write CloudWatch logs
+    "arn:aws:iam::aws:policy/service-role/AWSLambdaRole",               # Allows request lambda to execute callback lambda
+  ]
 }
 
 
@@ -38,12 +41,19 @@ resource "aws_iam_role" "lambda_role" {
 # the callback lambda, which will execute the actual run
 # task action.
 #
+data "aws_ecr_repository" "request" {
+  name = "run-task-poc-request"
+}
+
+data "aws_ecr_image" "request" {
+  repository_name = data.aws_ecr_repository.request.name
+  image_tag       = "latest"
+}
+
 resource "aws_lambda_function" "request" {
   function_name = "run_task_request"
   role          = aws_iam_role.lambda_role.arn
-
-  # URI comes from the output of the packer build, once the image is pushed to ECR
-  image_uri     = var.request_lambda_image_url
+  image_uri     = "${data.aws_ecr_repository.request.repository_url}@${data.aws_ecr_image.request.image_digest}"
   package_type  = "Image" # case sensitive
   architectures = ["x86_64"]
 
@@ -62,6 +72,15 @@ resource "aws_lambda_function_url" "request" {
   authorization_type = "NONE"
 }
 
+# Grant anyone the permission to call the lambda's url
+resource "aws_lambda_permission" "request" {
+  action                 = "lambda:InvokeFunctionUrl"
+  function_name          = aws_lambda_function.request.function_name
+  principal              = "*"
+  function_url_auth_type = "NONE"
+}
+
+
 
 #
 # The callback lambda
@@ -71,13 +90,20 @@ resource "aws_lambda_function_url" "request" {
 # asynchronously to TFC, and once complete will post the result back
 # to the TFC run.
 #
+data "aws_ecr_repository" "callback" {
+  name = "run-task-poc-callback"
+}
+
+data "aws_ecr_image" "callback" {
+  repository_name = data.aws_ecr_repository.callback.name
+  image_tag       = "latest"
+}
+
 resource "aws_lambda_function" "callback" {
   function_name = "run_task_callback"
   role          = aws_iam_role.lambda_role.arn
   timeout       = 120 # seconds
-
-  # URI comes from the output of the packer build, once the image is pushed to ECR
-  image_uri     = var.callback_lambda_image_url
+  image_uri     = "${data.aws_ecr_repository.callback.repository_url}@${data.aws_ecr_image.callback.image_digest}"
   package_type  = "Image" # case sensitive
   architectures = ["x86_64"]
 }

@@ -28,7 +28,6 @@ def handler(event, context):
     # Function defiition required for lambda: https://docs.aws.amazon.com/lambda/latest/dg/python-handler.html
     # JSON request and response format: https://docs.aws.amazon.com/lambda/latest/dg/urls-invocation.html#urls-payloads
 
-    logger.info('## ENV\r' + jsonpickle.encode(dict(**os.environ)))
     logger.info('## EVENT\r' + jsonpickle.encode(event))
     logger.info('## CONTEXT\r' + jsonpickle.encode(context))
 
@@ -38,12 +37,22 @@ def handler(event, context):
     status = 200
     msg = "ok"
 
+    logger.info('Checking HMAC digest ...')
     if not hmac_digest_is_valid(key, payload, signature):
         status = 400
         msg = 'HMAC digest does not match signature'
+        logger.error('HMAC digest does not match signature')
 
-    # TODO: Trigger callback lambda
+    logger.info('HMAC digest is OK.')
 
+    logger.info('Invoking callback lambda ...')
+    callback_response = client.invoke(
+        FunctionName='run_task_callback',
+        InvocationType='Event',
+        Payload=payload)
+    logger.info(callback_response)
+    logger.info('Callback lambda invoked. Returning ...')
+    
     response = {
         'statusCode': status,
         'body': jsonpickle.encode({'status': msg})
