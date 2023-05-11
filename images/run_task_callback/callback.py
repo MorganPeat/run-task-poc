@@ -29,6 +29,9 @@ def handler(event, context):
     logger.debug('## EVENT\r' + jsonpickle.encode(event))
     logger.debug('## CONTEXT\r' + jsonpickle.encode(context))
 
+    # Uses the terraform API token stored in an environment variable to pull the
+    # plan for this run from TFC.
+    # The plan isn't used here, it's only shown as a PoC and logged to diagnostics
     logger.info('Geting the terraform plan output ...')
     TF_TOKEN = os.environ['TF_TOKEN']
     headers = {
@@ -38,10 +41,15 @@ def handler(event, context):
     plan = get_tfe_json(event['plan_json_api_url'], headers)
     logger.debug(plan)
 
+    # Downloads all the terraform files that are part of the current terraform
+    # run (plan or apply). These files are stored as a .tar.gz for each run
+    # in the terraform workspace.
     logger.info('Downloading terraform files for this run ...')
     with tempfile.TemporaryDirectory(dir='/tmp/') as tf_location:
         download_tf_files(event['run_id'], headers, tf_location)
 
+        # Run `terraform fmt` against the files to check if they are
+        # formatted correctly (process result will be non-zero if not).
         logger.info('Validating terraform configuration ...')
         execute_terraform(['terraform', '-version'], tf_location)
         completed_process = execute_terraform(
@@ -50,6 +58,8 @@ def handler(event, context):
 
     logger.info('Function completed. Calling back to TFC with result ...')
 
+    # Call TFC with the final results of this run task.
+    # The TFC API token in the run task payload has to be used.
     headers = {
         # Requires passed access token
         'Authorization': f'Bearer {event["access_token"]}',

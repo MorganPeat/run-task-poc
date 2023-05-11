@@ -52,6 +52,7 @@ build {
     "source.docker.base"
   ]
 
+  # Handler script must be in WORKDIR
   provisioner "shell" {
     inline = ["mkdir -p /var/task"]
   }

@@ -7,7 +7,7 @@
 
 
 
-# Required trust policy that allows Lambda to assume the function's execution role.
+# Required trust policy that allows the Lambda service to assume the function's execution role.
 data "aws_iam_policy_document" "lambda_trust_policy" {
   statement {
     effect  = "Allow"
@@ -21,7 +21,7 @@ data "aws_iam_policy_document" "lambda_trust_policy" {
 }
 
 # Execution role for the function, defining the permissions that the
-# Lambda needs and allowing the Lambda function to assume it.
+# Lambda needs and allowing the Lambda service to assume it.
 # More info at https://docs.aws.amazon.com/lambda/latest/dg/lambda-intro-execution-role.html
 resource "aws_iam_role" "lambda_role" {
   name               = "iam_for_lambda"
@@ -54,8 +54,8 @@ resource "aws_lambda_function" "request" {
   function_name = "run_task_request"
   role          = aws_iam_role.lambda_role.arn
   image_uri     = "${data.aws_ecr_repository.request.repository_url}@${data.aws_ecr_image.request.image_digest}"
-  package_type  = "Image" # case sensitive
-  architectures = ["x86_64"]
+  package_type  = "Image"    # case sensitive
+  architectures = ["x86_64"] # Must match the arch of the image
 
   # This HMAC key allows the lambda to verify the payload.
   # It is also provided to the TFC run task itself.
@@ -72,7 +72,7 @@ resource "aws_lambda_function_url" "request" {
   authorization_type = "NONE"
 }
 
-# Grant anyone the permission to call the lambda's url
+# Grant everyone permission to call the lambda's url
 resource "aws_lambda_permission" "request" {
   action                 = "lambda:InvokeFunctionUrl"
   function_name          = aws_lambda_function.request.function_name
@@ -104,9 +104,13 @@ resource "aws_lambda_function" "callback" {
   role          = aws_iam_role.lambda_role.arn
   timeout       = 120 # seconds
   image_uri     = "${data.aws_ecr_repository.callback.repository_url}@${data.aws_ecr_image.callback.image_digest}"
-  package_type  = "Image" # case sensitive
-  architectures = ["x86_64"]
+  package_type  = "Image"    # case sensitive
+  architectures = ["x86_64"] # Must match the arch of the image
 
+  # The callback lambda downloads terraform plan details from TFC and needs an API
+  # token to do that.
+  # The API token in the run task request payload only has permission to report back against
+  # the run task, so a separate token is needed.
   environment {
     variables = {
       TF_TOKEN = sensitive(var.terraform_token)

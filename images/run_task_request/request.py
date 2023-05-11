@@ -37,6 +37,9 @@ def handler(event, context):
     status = 200
     msg = "ok"
 
+    # The HMAC digest for the payload must be valid.
+    # TFC will calculate it using a key stored with the run task. Use
+    # the same key here to validate the integrity of the payload.
     logger.info('Checking HMAC digest ...')
     if not hmac_digest_is_valid(key, payload, signature):
         status = 400
@@ -45,6 +48,8 @@ def handler(event, context):
 
     logger.info('HMAC digest is OK.')
 
+    # The payload is valid, invoke the next link in the chain - the
+    # callback lambda.
     logger.info('Invoking callback lambda ...')
     callback_response = client.invoke(
         FunctionName='run_task_callback',

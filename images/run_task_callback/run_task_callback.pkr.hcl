@@ -37,7 +37,7 @@ source "docker" "base" {
   platform = "linux/amd64"
 
   changes = [
-    # This is the name of my handler function. See https://docs.aws.amazon.com/lambda/latest/dg/python-image.html#python-image-create
+    # This is the name of the handler function python script. See https://docs.aws.amazon.com/lambda/latest/dg/python-image.html#python-image-create
     "CMD [ \"callback.handler\" ]",
     # Seems that some of the base image parameters are removed when packer builds, so
     # I add them back here. They came from https://github.com/aws/aws-lambda-base-images/blob/python3.9/Dockerfile.python3.9
@@ -52,6 +52,7 @@ build {
     "source.docker.base"
   ]
 
+  # Handler script must be in WORKDIR
   provisioner "shell" {
     inline = ["mkdir -p /var/task"]
   }
